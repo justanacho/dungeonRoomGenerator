@@ -1,0 +1,162 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <div style="margin:auto;width:800px">
+        <svg></svg>
+    </div>
+    <script src="scripts/d3.js"></script>
+    <script>
+        class Pieza {
+            constructor(w, h, x, y) {
+                this.w = w;
+                this.h = h;
+                this.x = x;
+                this.y = y
+            }
+            posicionesOcupadas() {
+                let ocupado = [];
+                for (let x = 0; x < Math.abs(this.w); x++) {
+                    for (let y = 0; y < Math.abs(this.h); y++) {
+                        ocupado.push([this.x + x * this.w / Math.abs(this.w), this.y + y * this.h / Math.abs(this.h)])
+                    }
+                }
+                return ocupado;
+            }
+            posicionesDisponibles() {
+                let disponible = [];
+                for (let x = -1; x <= Math.abs(this.w); x++) {
+                    for (let y = -1; y <= Math.abs(this.h); y++) {
+                        if (!([-1, Math.abs(this.w)].indexOf(x) >= 0 && [-1, Math.abs(this.h)].indexOf(y) >= 0) && (x === -1 || y === -1 || x === this.w || y === this.h)) {
+                            disponible.push([this.x + x * this.w / Math.abs(this.w), this.y + y * this.h / Math.abs(this.h)]);
+                        }
+                    }
+                }
+                return disponible;
+            }
+            rotar() {
+                let temp = parseInt(this.w);
+                this.w = parseInt(this.h);
+                this.h = parseInt(-1 * temp);
+            }
+        }
+        const setJuego = ["6x6",
+            "6x6",
+            "6x3",
+            "6x3",
+            "6x2",
+            "6x2",
+            "3x3",
+            "3x3",
+            "3x2",
+            "3x3",
+            "3x1",
+            "3x1",
+            "2x2",
+            "2x2",
+            "2x1",
+            "2x1",
+            "1x1",
+            "1x1"]
+
+        const tablero = [];
+        function randomBoard(cTablero, piezas) {
+            if (piezas.length === 0) {
+                var height = 600;
+                var width = 600;
+                let factor = 10;
+                const svg = d3.select("body")
+                    .select("svg")
+                    .attr("width", width)
+                    .attr("height", height);
+                svg.selectAll("*").remove();
+                svg.selectAll("rect")
+                    .data(cTablero)
+                    .enter()
+                    .append("rect")
+                    .attr("x", function (d) {
+                        if (d.w < 0) {
+                            return 300 + (d.x + d.w + 1) * factor
+                        }
+                        return 300 + d.x * factor
+                    })
+                    .attr("y", function (d) {
+                        if (d.h < 0) {
+                            return 300 + (d.y + d.h + 1) * factor
+                        }
+                        return 300 + d.y * factor
+                    })
+                    .attr("width", (d) => Math.abs(d.w) * factor)
+                    .attr("height", (d) => Math.abs(d.h) * factor)
+                    .attr("fill", function (d) {
+                        return "red"
+                    })
+                    .attr("stroke-width", factor/5)
+                    .attr("stroke", "black")
+            } else {
+                let w = parseInt(piezas[0].split("x")[0])
+                let h = parseInt(piezas[0].split("x")[1])
+                let x = 0;
+                let y = 0;
+
+                if (cTablero.length === 0) {
+                    randomBoard(cTablero.concat([new Pieza(w, h, x, y)]), piezas.slice(1, piezas.length))
+                } else {
+                    let sitiosOcupados = [];
+                    let sitiosDisponibles = []
+                    for (let j = 0; j < cTablero.length; j++) {
+                        sitiosOcupados = sitiosOcupados.concat(cTablero[j].posicionesOcupadas())
+                        sitiosDisponibles = sitiosDisponibles.concat(cTablero[j].posicionesDisponibles())
+                    }
+                    const sitiosDisponiblesNoOcupados = [];
+                    for (let j = 0; j < sitiosDisponibles.length; j++) {
+                        if (sitiosOcupados.indexOf(sitiosDisponibles[j]) === -1) {
+                            x = sitiosDisponibles[j][0];
+                            y = sitiosDisponibles[j][1];
+                            let temp = new Pieza(w, h, x, y);
+                            for (let r = 0; r < 4; r++) {
+                                let areaNuevaPieza = temp.posicionesOcupadas();
+                                let keep = true
+                                for (let z = 0; z < areaNuevaPieza.length; z++) {
+                                    for (let u = 0; u < sitiosOcupados.length; u++) {
+                                        if (sitiosOcupados[u][0] === areaNuevaPieza[z][0] && sitiosOcupados[u][1] === areaNuevaPieza[z][1]) {
+                                            keep = false
+                                            break;
+                                        }
+                                    }
+                                    if (!keep) {
+                                        break
+                                    }
+                                }
+                                if (keep) {
+                                    sitiosDisponiblesNoOcupados.push([x, y, r])
+                                }
+                                temp.rotar()
+                            }
+                        }
+                    }
+                    let randomNumber = Math.floor(Math.random() * sitiosDisponiblesNoOcupados.length)
+                    x = sitiosDisponiblesNoOcupados[randomNumber][0]
+                    y = sitiosDisponiblesNoOcupados[randomNumber][1]
+                    let temp = new Pieza(w, h, x, y)
+                    for (let r = 0; r < sitiosDisponiblesNoOcupados[randomNumber][2]; r++) {
+                        temp.rotar()
+                    }
+                    randomBoard(cTablero.concat([temp]), piezas.slice(1, piezas.length))
+                }
+            }
+        }
+        setInterval(function(){
+            randomBoard([], setJuego);
+        },1000);
+
+
+
+
+    </script>
+</body>
+
+</html>
