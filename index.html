@@ -10,6 +10,149 @@
     </div>
     <script src="scripts/d3.js"></script>
     <script>
+        class Tablero {
+            constructor(x, y) {
+                this.piezas = []
+                this.superficie = []
+                this.x = x
+                this.y = y
+            }
+
+
+            randomBoard(piezas) {
+                if (piezas.length === 0) {
+                    return
+                } else {
+                    let w = parseInt(piezas[0].split("x")[0])
+                    let h = parseInt(piezas[0].split("x")[1])
+                    let x = 0;
+                    let y = 0;
+
+                    if (this.piezas.length === 0) {
+                        this.anadirPieza(w, h, this.x, this.y)
+                        this.randomBoard(piezas.slice(1, piezas.length))
+                    } else {
+                        let sitiosOcupados = [];
+                        let sitiosDisponibles = []
+                        for (let j = 0; j < this.piezas.length; j++) {
+                            sitiosOcupados = sitiosOcupados.concat(this.piezas[j].posicionesOcupadas())
+                            sitiosDisponibles = sitiosDisponibles.concat(this.piezas[j].posicionesDisponibles())
+                        }
+                        const sitiosDisponiblesNoOcupados = [];
+                        for (let j = 0; j < sitiosDisponibles.length; j++) {
+                            if (sitiosOcupados.indexOf(sitiosDisponibles[j]) === -1) {
+                                x = sitiosDisponibles[j][0];
+                                y = sitiosDisponibles[j][1];
+                                let temp = new Pieza(w, h, x, y);
+                                for (let r = 0; r < 4; r++) {
+                                    let areaNuevaPieza = temp.posicionesOcupadas();
+                                    let keep = true
+                                    for (let z = 0; z < areaNuevaPieza.length; z++) {
+                                        for (let u = 0; u < sitiosOcupados.length; u++) {
+                                            if (sitiosOcupados[u][0] === areaNuevaPieza[z][0] && sitiosOcupados[u][1] === areaNuevaPieza[z][1]) {
+                                                keep = false
+                                                break;
+                                            }
+                                        }
+                                        if (!keep) {
+                                            break
+                                        }
+                                    }
+                                    if (keep) {
+                                        sitiosDisponiblesNoOcupados.push([x, y, r])
+                                    }
+                                    temp.rotar()
+                                }
+                            }
+                        }
+                        let randomNumber = Math.floor(Math.random() * sitiosDisponiblesNoOcupados.length)
+                        x = sitiosDisponiblesNoOcupados[randomNumber][0]
+                        y = sitiosDisponiblesNoOcupados[randomNumber][1]
+                        this.anadirPieza(w, h, x, y)
+                        for (let r = 0; r < sitiosDisponiblesNoOcupados[randomNumber][2]; r++) {
+                            this.piezas[this.piezas.length - 1].rotar()
+                        }
+                        this.randomBoard(piezas.slice(1, piezas.length))
+                    }
+                }
+            }
+
+
+
+            anadirPieza(w, h, x, y) {
+                this.piezas.push(new Pieza(w, h, x, y))
+                this.calcularSuperficie();
+                this.distribucionFichas();
+            }
+            calcularSuperficie() {
+                let superficie = []
+                for (let i = 0; i < this.piezas.length; i++) {
+                    superficie = superficie.concat(this.piezas[i].posicionesOcupadas())
+                }
+                this.superficie = superficie.slice();
+            }
+            distribucionFichas() {
+                function checkArrayInArray(array, array2D) {
+                    for (let i = 0; i < array2D.length; i++) {
+                        if (array[0] === array2D[i][0] && array[1] === array2D[i][1]) {
+                            return true
+                        }
+                    }
+                    return false
+                }
+
+                let distribucion = {
+                    1: 0,
+                    2: 0,
+                    3: 0,
+                    4: 0,
+                    5: 0,
+                    6: 0,
+                    7: 0,
+                    8: 0
+                }
+                for (let i = 0; i < this.superficie.length; i++) {
+                    let sum = 0
+                    for (let x = -1; x < 2; x++) {
+                        for (let y = -1; y < 2; y++) {
+                            if (x !== 0 || y !== 0) {
+                                if (checkArrayInArray([this.superficie[i][0] + x, this.superficie[i][1] + y], this.superficie)) {
+                                    sum += 1
+                                }
+                            }
+                        }
+                    }
+                    distribucion[sum] += 1 / this.superficie.length
+                }
+                this.distribucion = distribucion
+            }
+            dibujar(factor, w, h, clean) {
+                svg.selectAll("rect")
+                    .data(this.piezas)
+                    .enter()
+                    .append("rect")
+                    .attr("x", function (d) {
+                        if (d.w < 0) {
+                            return w + (d.x + d.w + 1) * factor
+                        }
+                        return w + d.x * factor
+                    })
+                    .attr("y", function (d) {
+                        if (d.h < 0) {
+                            return h + (d.y + d.h + 1) * factor
+                        }
+                        return h + d.y * factor
+                    })
+                    .attr("width", (d) => Math.abs(d.w) * factor)
+                    .attr("height", (d) => Math.abs(d.h) * factor)
+                    .attr("fill", function (d) {
+                        return "red"
+                    })
+                    .attr("stroke-width", factor / 5)
+                    .attr("stroke", "black")
+            }
+        }
+
         class Pieza {
             constructor(w, h, x, y) {
                 this.w = w;
@@ -43,115 +186,114 @@
                 this.h = parseInt(-1 * temp);
             }
         }
-        const setJuego = ["6x6",
-            "6x6",
+
+
+
+        const setJuego = ["3x3",
+            "3x3",
+            "3x3",
+            "3x3",
+            "3x3",
+            "3x3",
+            "3x3",
+            "3x3",
             "6x3",
             "6x3",
-            "6x2",
-            "6x2",
-            "3x3",
-            "3x3",
-            "3x2",
-            "3x3",
-            "3x1",
-            "3x1",
-            "2x2",
-            "2x2",
-            "2x1",
-            "2x1",
+            "6x3",
+            "6x3",
+            "6x3",
+            "6x3",
+            "6x3",
+            "6x3",
+            "6x3",
+            "6x3",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
+            "1x1",
             "1x1",
             "1x1"]
 
-        const tablero = [];
-        function randomBoard(cTablero, piezas) {
-            if (piezas.length === 0) {
-                var height = 600;
-                var width = 600;
-                let factor = 10;
-                const svg = d3.select("body")
-                    .select("svg")
-                    .attr("width", width)
-                    .attr("height", height);
-                svg.selectAll("*").remove();
-                svg.selectAll("rect")
-                    .data(cTablero)
-                    .enter()
-                    .append("rect")
-                    .attr("x", function (d) {
-                        if (d.w < 0) {
-                            return 300 + (d.x + d.w + 1) * factor
-                        }
-                        return 300 + d.x * factor
-                    })
-                    .attr("y", function (d) {
-                        if (d.h < 0) {
-                            return 300 + (d.y + d.h + 1) * factor
-                        }
-                        return 300 + d.y * factor
-                    })
-                    .attr("width", (d) => Math.abs(d.w) * factor)
-                    .attr("height", (d) => Math.abs(d.h) * factor)
-                    .attr("fill", function (d) {
-                        return "red"
-                    })
-                    .attr("stroke-width", factor/5)
-                    .attr("stroke", "black")
-            } else {
-                let w = parseInt(piezas[0].split("x")[0])
-                let h = parseInt(piezas[0].split("x")[1])
-                let x = 0;
-                let y = 0;
 
-                if (cTablero.length === 0) {
-                    randomBoard(cTablero.concat([new Pieza(w, h, x, y)]), piezas.slice(1, piezas.length))
-                } else {
-                    let sitiosOcupados = [];
-                    let sitiosDisponibles = []
-                    for (let j = 0; j < cTablero.length; j++) {
-                        sitiosOcupados = sitiosOcupados.concat(cTablero[j].posicionesOcupadas())
-                        sitiosDisponibles = sitiosDisponibles.concat(cTablero[j].posicionesDisponibles())
-                    }
-                    const sitiosDisponiblesNoOcupados = [];
-                    for (let j = 0; j < sitiosDisponibles.length; j++) {
-                        if (sitiosOcupados.indexOf(sitiosDisponibles[j]) === -1) {
-                            x = sitiosDisponibles[j][0];
-                            y = sitiosDisponibles[j][1];
-                            let temp = new Pieza(w, h, x, y);
-                            for (let r = 0; r < 4; r++) {
-                                let areaNuevaPieza = temp.posicionesOcupadas();
-                                let keep = true
-                                for (let z = 0; z < areaNuevaPieza.length; z++) {
-                                    for (let u = 0; u < sitiosOcupados.length; u++) {
-                                        if (sitiosOcupados[u][0] === areaNuevaPieza[z][0] && sitiosOcupados[u][1] === areaNuevaPieza[z][1]) {
-                                            keep = false
-                                            break;
-                                        }
-                                    }
-                                    if (!keep) {
-                                        break
-                                    }
-                                }
-                                if (keep) {
-                                    sitiosDisponiblesNoOcupados.push([x, y, r])
-                                }
-                                temp.rotar()
-                            }
-                        }
-                    }
-                    let randomNumber = Math.floor(Math.random() * sitiosDisponiblesNoOcupados.length)
-                    x = sitiosDisponiblesNoOcupados[randomNumber][0]
-                    y = sitiosDisponiblesNoOcupados[randomNumber][1]
-                    let temp = new Pieza(w, h, x, y)
-                    for (let r = 0; r < sitiosDisponiblesNoOcupados[randomNumber][2]; r++) {
-                        temp.rotar()
-                    }
-                    randomBoard(cTablero.concat([temp]), piezas.slice(1, piezas.length))
+
+
+
+
+        var height = 800;
+        var width = 800;
+
+        let factor = 3;
+
+        const svg = d3.select("body")
+            .select("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+
+
+
+
+
+
+        const tableros = [];
+        for (let y = 1; y < 6; y++) {
+            for (let x = 1; x < 6; x++) {
+                var tablero = new Tablero(x * 50 - 25, y * 50 - 25);
+                tablero.randomBoard(setJuego);
+                while (tablero.distribucion[8] + tablero.distribucion[7] + tablero.distribucion[6] > .65) {
+                    tablero = new Tablero(x * 50 - 25, y * 50 - 25);
+                    tablero.randomBoard(setJuego);
                 }
+                tableros.push(tablero)
             }
         }
-        setInterval(function(){
-            randomBoard([], setJuego);
-        },1000);
+
+
+
+
+
+
+        function dibujarTableros(tableros) {
+            let data = []
+            for (let i = 0; i < tableros.length; i++) {
+                data = data.concat(tableros[i].piezas)
+            }
+            svg.selectAll("rect")
+                .data(data)
+                .enter()
+                .append("rect")
+                .attr("x", function (d) {
+                    if (d.w < 0) {
+                        return (d.x + d.w + 1) * factor
+                    }
+                    return d.x * factor
+                })
+                .attr("y", function (d) {
+                    if (d.h < 0) {
+                        return (d.y + d.h + 1) * factor
+                    }
+                    return d.y * factor
+                })
+                .attr("width", (d) => Math.abs(d.w) * factor)
+                .attr("height", (d) => Math.abs(d.h) * factor)
+                .attr("fill", function (d) {
+                    return "red"
+                })
+                .attr("stroke-width", factor / 5)
+                .attr("stroke", "black")
+        }
+        dibujarTableros(tableros)
 
 
 
